@@ -14,8 +14,8 @@ const Dashboard = () => {
 
     const [sample, setsample] = useState(true);
     const [users, setusers] = useState([]);
-    const [particular, setparticular] = useState({});  // ✅ changed from []
-    const [messages, setmessages] = useState({ sent: [], received: [] }); // ✅ new
+    const [particular, setparticular] = useState({});
+    const [messages, setmessages] = useState({ sent: [], received: [] });
     const [mgs, setmgs] = useState({ message: "" });
 
     const handle = (e) => setmgs({ ...mgs, [e.target.name]: e.target.value });
@@ -85,7 +85,6 @@ const Dashboard = () => {
             const res = await axios.put(api_url, obj);
 
             if (res.data.success) {
-                // ✅ optimistically update sent messages
                 setmessages(prev => ({
                     ...prev,
                     sent: [...prev.sent, { from: "me", mgs: mgs.message }]
@@ -97,7 +96,9 @@ const Dashboard = () => {
         }
     };
 
-    console.log("messages state:", messages);
+    let handledelete=()=>{
+        alert("Unable to Delete the User");
+    }
 
     return (
         <div id="main_msgs_container">
@@ -122,7 +123,7 @@ const Dashboard = () => {
                                 ? <><div id="spot"></div><div id="another"></div></>
                                 : <FaMessage
                                     style={{ color: "white", cursor: "pointer" }}
-                                    onClick={() => handleSpecific(res)} // ✅ pass full user
+                                    onClick={() => handleSpecific(res)}
                                   />
                             }
                         </div>
@@ -154,7 +155,7 @@ const Dashboard = () => {
                                 <FaUser style={{ fontSize: "2vw", color: "white" }} />
                                 <h3 style={{ color: "white" }}>{particular.username}</h3>
                             </div>
-                            <button id='delete_user'>Delete User</button>
+                            <button id='delete_user' onClick={handledelete}>Delete User</button>
                         </nav>
                         <div id="entire_msgs_div_each">
                             <div id="mgs_visible_div">
