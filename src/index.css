@@ -407,7 +407,7 @@
 .messages_box{
     width: 49%;
     height: 99%;
-    background-color: green;
+    /* background-color: green; */
     display: flex;
     flex-direction: column;
     justify-content: flex-start;
