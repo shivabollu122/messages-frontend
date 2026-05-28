@@ -30,9 +30,13 @@ const Dashboard = () => {
     };
 
     useEffect(() => {
+    fetchApi();
+    const interval = setInterval(() => {
         fetchApi();
-        // ✅ F5 block removed
-    }, []);
+    }, 5000);
+
+    return () => clearInterval(interval);
+}, []);
 
     const handleSpecific = async (user) => {
         setsample(false);
