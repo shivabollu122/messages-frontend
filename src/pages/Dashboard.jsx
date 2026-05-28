@@ -29,29 +29,44 @@ const Dashboard = () => {
         }
     };
 
-    useEffect(() => {
+   useEffect(() => {
     fetchApi();
-    const interval = setInterval(() => {
-        fetchApi();
-    }, 5000);
+    const interval = setInterval(() => fetchApi(), 5000);
 
-    return () => clearInterval(interval);
+    return () => {
+        clearInterval(interval);
+        if (window.convoInterval) clearInterval(window.convoInterval);
+    };
 }, []);
 
     const handleSpecific = async (user) => {
-        setsample(false);
-        try {
-            // ✅ fetch both in parallel
-            const [particularRes, convoRes] = await Promise.all([
-                axios.get(`${api_url}/${user._id}`),
-                axios.get(`${api_url}/conversation/${user_id}/${user._id}`)
-            ]);
-            setparticular(particularRes.data);
-            setmessages(convoRes.data); // { sent: [...], received: [...] }
-        } catch (err) {
-            console.log(err);
-        }
-    };
+    setsample(false);
+
+    if (window.convoInterval) clearInterval(window.convoInterval);
+
+    try {
+        const [particularRes, convoRes] = await Promise.all([
+            axios.get(`${api_url}/${user._id}`),
+            axios.get(`${api_url}/conversation/${user_id}/${user._id}`)
+        ]);
+        setparticular(particularRes.data);
+        setmessages(convoRes.data);
+
+        const otherId = user._id;
+
+        window.convoInterval = setInterval(async () => {
+            try {
+                const res = await axios.get(`${api_url}/conversation/${user_id}/${otherId}`);
+                setmessages(res.data);
+            } catch (err) {
+                console.log(err);
+            }
+        }, 3000);
+
+    } catch (err) {
+        console.log(err);
+    }
+};
 
     const handlebutton = async () => {
         if (mgs.message.trim() === "") {
