@@ -33,7 +33,7 @@ const Dashboard = () => {
     const navigate = useNavigate();
 
     const handleSignout = () => {
-    settimeout(()=>{
+    setTimeout(()=>{
         navigate("/", { replace: true }); 
     },500)
 };
