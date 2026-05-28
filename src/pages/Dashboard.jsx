@@ -18,8 +18,11 @@ const Dashboard = () => {
     const [particular, setparticular] = useState({});
     const [messages, setmessages] = useState({ sent: [], received: [] });
     const [mgs, setmgs] = useState({ message: "" });
+    const [search, setsearch] = useState("");
 
     const handle = (e) => setmgs({ ...mgs, [e.target.name]: e.target.value });
+
+    const navigate = useNavigate();
 
     const fetchApi = async () => {
         try {
@@ -30,52 +33,50 @@ const Dashboard = () => {
         }
     };
 
-    const navigate = useNavigate();
-
     const handleSignout = () => {
-    setTimeout(()=>{
-        navigate("/", { replace: true }); 
-    },500)
-};
-
-   useEffect(() => {
-    fetchApi();
-    const interval = setInterval(() => fetchApi(), 5000);
-
-    return () => {
-        clearInterval(interval);
-        if (window.convoInterval) clearInterval(window.convoInterval);
+        setTimeout(() => {
+            navigate("/", { replace: true });
+        }, 500);
     };
-}, []);
+
+    useEffect(() => {
+        fetchApi();
+        const interval = setInterval(() => fetchApi(), 5000);
+
+        return () => {
+            clearInterval(interval);
+            if (window.convoInterval) clearInterval(window.convoInterval);
+        };
+    }, []);
 
     const handleSpecific = async (user) => {
-    setsample(false);
+        setsample(false);
 
-    if (window.convoInterval) clearInterval(window.convoInterval);
+        if (window.convoInterval) clearInterval(window.convoInterval);
 
-    try {
-        const [particularRes, convoRes] = await Promise.all([
-            axios.get(`${api_url}/${user._id}`),
-            axios.get(`${api_url}/conversation/${user_id}/${user._id}`)
-        ]);
-        setparticular(particularRes.data);
-        setmessages(convoRes.data);
+        try {
+            const [particularRes, convoRes] = await Promise.all([
+                axios.get(`${api_url}/${user._id}`),
+                axios.get(`${api_url}/conversation/${user_id}/${user._id}`)
+            ]);
+            setparticular(particularRes.data);
+            setmessages(convoRes.data);
 
-        const otherId = user._id;
+            const otherId = user._id;
 
-        window.convoInterval = setInterval(async () => {
-            try {
-                const res = await axios.get(`${api_url}/conversation/${user_id}/${otherId}`);
-                setmessages(res.data);
-            } catch (err) {
-                console.log(err);
-            }
-        }, 3000);
+            window.convoInterval = setInterval(async () => {
+                try {
+                    const res = await axios.get(`${api_url}/conversation/${user_id}/${otherId}`);
+                    setmessages(res.data);
+                } catch (err) {
+                    console.log(err);
+                }
+            }, 3000);
 
-    } catch (err) {
-        console.log(err);
-    }
-};
+        } catch (err) {
+            console.log(err);
+        }
+    };
 
     const handlebutton = async () => {
         if (mgs.message.trim() === "") {
@@ -105,15 +106,25 @@ const Dashboard = () => {
         }
     };
 
-    let handledelete=()=>{
+    const handledelete = () => {
         alert("Unable to Delete the User");
-    }
+    };
+
+    const filteredUsers = users.filter(u =>
+        u.username.toLowerCase().includes(search.toLowerCase())
+    );
 
     return (
         <div id="main_msgs_container">
             <nav id="navbar">
                 <img src={image} width="15%" />
-                <input type="text" placeholder='Search Friends or Messages..' id='input_dash' />
+                <input
+                    type="text"
+                    placeholder='Search Friends or Messages..'
+                    id='input_dash'
+                    value={search}
+                    onChange={(e) => setsearch(e.target.value)}
+                />
                 <div id="name_con">
                     <span className='name_options'>🟢</span>
                     <span className='name_options'>Hello,</span>
@@ -124,7 +135,7 @@ const Dashboard = () => {
             <div id="messages_div">
                 <div id="first_div">
                     <h3 style={{ color: "white" }}>All Profiles</h3>
-                    {users.map(res => (
+                    {filteredUsers.map(res => (
                         <div className="each_div" key={res._id}>
                             <FaUser style={{ color: "white" }} />
                             <span className='users'>{res.username}</span>
@@ -168,7 +179,6 @@ const Dashboard = () => {
                         </nav>
                         <div id="entire_msgs_div_each">
                             <div id="mgs_visible_div">
-                                {/* ✅ sent and received now from fresh fetch */}
                                 <div className="messages_box" id='Receive'>
                                     {messages.received.map((m, i) => (
                                         <span key={i} className='receive_div_msg'>{m.mgs}</span>
