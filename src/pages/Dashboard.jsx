@@ -4,6 +4,7 @@ import image from "../assets/heading.jpg";
 import axios from 'axios';
 import { FaMessage, FaUser } from 'react-icons/fa6';
 import { MdSend } from 'react-icons/md';
+import { useNavigate } from 'react-router-dom';
 
 const api_url = "https://message-backend-edjz.onrender.com/mgs";
 
@@ -28,6 +29,14 @@ const Dashboard = () => {
             console.log(err);
         }
     };
+
+    const navigate = useNavigate();
+
+    const handleSignout = () => {
+    settimeout(()=>{
+        navigate("/", { replace: true }); 
+    },500)
+};
 
    useEffect(() => {
     fetchApi();
@@ -110,7 +119,7 @@ const Dashboard = () => {
                     <span className='name_options'>Hello,</span>
                     <span className='name_options'>{loc.state.name}</span>
                 </div>
-                <button id='signout'>SignOut</button>
+                <button id='signout' onClick={handleSignout}>SignOut</button>
             </nav>
             <div id="messages_div">
                 <div id="first_div">
