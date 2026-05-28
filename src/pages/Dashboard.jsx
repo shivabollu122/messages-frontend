@@ -119,7 +119,7 @@ const Dashboard = () => {
                             <FaUser style={{ color: "white" }} />
                             <span className='users'>{res.username}</span>
                             {res._id === user_id
-                                ? <div id="spot"></div><div id="another"></div>
+                                ? <><div id="spot"></div><div id="another"></div></>
                                 : <FaMessage
                                     style={{ color: "white", cursor: "pointer" }}
                                     onClick={() => handleSpecific(res)} // ✅ pass full user
