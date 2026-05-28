@@ -16,7 +16,7 @@ const Dashboard = () => {
     const [sample, setsample] = useState(true);
     const [users, setusers] = useState([]);
     const [particular, setparticular] = useState({});
-    const [messages, setmessages] = useState({ sent: [], received: [] });
+    const [messages, setmessages] = useState([]); // ✅ single array
     const [mgs, setmgs] = useState({ message: "" });
     const [search, setsearch] = useState("");
 
@@ -60,7 +60,7 @@ const Dashboard = () => {
                 axios.get(`${api_url}/conversation/${user_id}/${user._id}`)
             ]);
             setparticular(particularRes.data);
-            setmessages(convoRes.data);
+            setmessages(convoRes.data); // ✅ single sorted array
 
             const otherId = user._id;
 
@@ -95,10 +95,11 @@ const Dashboard = () => {
             const res = await axios.put(api_url, obj);
 
             if (res.data.success) {
-                setmessages(prev => ({
+                // ✅ optimistically add to single array
+                setmessages(prev => [
                     ...prev,
-                    sent: [...prev.sent, { from: "me", mgs: mgs.message }]
-                }));
+                    { type: "sent", mgs: mgs.message, time: new Date() }
+                ]);
                 setmgs({ message: "" });
             }
         } catch (err) {
@@ -178,17 +179,16 @@ const Dashboard = () => {
                             <button id='delete_user' onClick={handledelete}>Delete User</button>
                         </nav>
                         <div id="entire_msgs_div_each">
+                            {/* ✅ single chat thread like whatsapp */}
                             <div id="mgs_visible_div">
-                                <div className="messages_box" id='Receive'>
-                                    {messages.received.map((m, i) => (
-                                        <span key={i} className='receive_div_msg'>{m.mgs}</span>
-                                    ))}
-                                </div>
-                                <div className="messages_box" id='send'>
-                                    {messages.sent.map((m, i) => (
-                                        <span key={i} className='send_div_msg'>{m.mgs}</span>
-                                    ))}
-                                </div>
+                                {messages.map((m, i) => (
+                                    <span
+                                        key={i}
+                                        className={m.type === "sent" ? "send_div_msg" : "receive_div_msg"}
+                                    >
+                                        {m.mgs}
+                                    </span>
+                                ))}
                             </div>
                             <div id="mgs_sender_div">
                                 <input
