@@ -82,6 +82,8 @@ const Dashboard = () => {
         }
     };
 
+    console.log("messages state:", messages);
+
     return (
         <div id="main_msgs_container">
             <nav id="navbar">
