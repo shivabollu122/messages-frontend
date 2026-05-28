@@ -142,14 +142,14 @@ const Dashboard = () => {
                         <div id="entire_msgs_div_each">
                             <div id="mgs_visible_div">
                                 {/* ✅ sent and received now from fresh fetch */}
-                                <div className="messages_box" id='send'>
-                                    {messages.sent.map((m, i) => (
-                                        <span key={i} className='send_div_msg'>{m.mgs}</span>
-                                    ))}
-                                </div>
                                 <div className="messages_box" id='Receive'>
                                     {messages.received.map((m, i) => (
                                         <span key={i} className='receive_div_msg'>{m.mgs}</span>
+                                    ))}
+                                </div>
+                                <div className="messages_box" id='send'>
+                                    {messages.sent.map((m, i) => (
+                                        <span key={i} className='send_div_msg'>{m.mgs}</span>
                                     ))}
                                 </div>
                             </div>
