@@ -2,8 +2,7 @@
     padding: 0px;
     margin: 0px;
     box-sizing: border-box;
-    overflow: hidden;
-    font-family: ProductSans;
+    font-family: ProductSans; /* ✅ removed overflow:hidden from here */
 }
 @font-face {
     font-family: ProductSans;
@@ -12,6 +11,7 @@
 #main_con_signup{
     width: 100vw;
     height: 100vh;
+    overflow: hidden; /* ✅ added here instead */
     background-image: url(./assets/signup.png);
     background-size: 100% 100%;
     background-repeat: no-repeat;
@@ -112,6 +112,7 @@
 #main_login_con{
     width: 100vw;
     height: 100vh;
+    overflow: hidden; /* ✅ added here instead */
     background-image: url(./assets/login.png);
     background-size: 100% 100%;
     background-repeat: no-repeat;
@@ -120,6 +121,7 @@
 #main_msgs_container{
     width: 100vw;
     height: 100vh;
+    overflow: hidden; /* ✅ added here instead */
     background-color: rgb(4, 4, 30);
 }
 #navbar{
@@ -185,8 +187,8 @@
     flex-direction: column;
     align-items: center;
     justify-content: space-evenly;
+    overflow: hidden; /* ✅ */
 }
-/* ✅ added overflow hidden */
 #second_div{
     width: 65vw;
     height: 95%;
@@ -253,7 +255,7 @@
     justify-content: space-around;
     gap: 25vw;
     border-bottom: 1px solid gray;
-    flex-shrink: 0; /* ✅ */
+    flex-shrink: 0;
 }
 #animation_con{
     width: 60vw;
@@ -308,7 +310,6 @@
     from{ transform: translateY(-35px); }
     to{ transform: translateY(0px); }
 }
-/* ✅ fixed height chain */
 #entire_msgs_div{
     width: 100%;
     height: 100%;
@@ -316,7 +317,7 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    overflow: hidden; /* ✅ */
+    overflow: hidden;
 }
 #each_profile_div{
     width: 20%;
@@ -366,15 +367,15 @@
     height: 90%;
     display: flex;
     flex-direction: column;
-    overflow: hidden; /* ✅ */
+    overflow: hidden;
 }
 #mgs_visible_div {
     width: 100%;
     flex: 1;
     display: flex;
     flex-direction: column;
-    overflow-y: scroll !important;  /* ✅ add !important */
-    overflow-x: hidden !important;
+    overflow-y: scroll; /* ✅ now works since * no longer blocks it */
+    overflow-x: hidden;
     padding: 0.5vw 1vw;
     gap: 0.3vw;
 }
@@ -384,7 +385,7 @@
 #mgs_sender_div {
     width: 100%;
     height: 15%;
-    flex-shrink: 0; /* ✅ always stays at bottom */
+    flex-shrink: 0;
     display: flex;
     align-items: center;
     justify-content: space-evenly;
