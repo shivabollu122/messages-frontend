@@ -399,8 +399,8 @@
     width: 100%;
     height: 85%;
     display: flex;
-    flex-direction: column; /* ✅ column layout */
-    overflow-y: auto;
+    flex-direction: column;
+    overflow-y: auto !important; /* ✅ overrides the * rule */
     padding: 1vw;
     gap: 0.5vw;
 }
