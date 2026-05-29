@@ -400,33 +400,35 @@
     height: 85%;
     display: flex;
     flex-direction: column;
-    overflow-y: auto !important; /* ✅ overrides the * rule */
-    padding: 1vw;
-    gap: 0.5vw;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    padding: 0.5vw 1vw;
+    gap: 0.3vw;
 }
 
 #mgs_visible_div::-webkit-scrollbar {
     display: none;
 }
-
 .send_div_msg {
     width: fit-content;
+    max-width: 45%;        /* ✅ prevent going off screen */
     height: fit-content;
     background-color: rgba(255, 255, 255, 0.344);
-    padding: 0.2vw 0.8vw;
-    margin-top: 0.6vw;
+    padding: 0.3vw 0.8vw;
     border-radius: 0.4vw;
     color: white;
-    align-self: flex-end; /* ✅ sent messages on right */
+    align-self: flex-end;
+    word-wrap: break-word; /* ✅ wrap long messages */
 }
 
 .receive_div_msg {
     width: fit-content;
+    max-width: 45%;        /* ✅ prevent going off screen */
     height: fit-content;
     background-color: rgba(255, 255, 255, 0.344);
-    padding: 0.2vw 0.8vw;
-    margin-top: 0.5vw;
+    padding: 0.3vw 0.8vw;
     border-radius: 0.4vw;
     color: white;
-    align-self: flex-start; /* ✅ received messages on left */
+    align-self: flex-start;
+    word-wrap: break-word; /* ✅ wrap long messages */
 }
