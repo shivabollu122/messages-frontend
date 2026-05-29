@@ -373,8 +373,8 @@
     flex: 1;
     display: flex;
     flex-direction: column;
-    overflow-y: scroll; /* ✅ only this scrolls */
-    overflow-x: hidden;
+    overflow-y: scroll !important;  /* ✅ add !important */
+    overflow-x: hidden !important;
     padding: 0.5vw 1vw;
     gap: 0.3vw;
 }
