@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react'
+import React, { useEffect, useState, useRef, useCallback } from 'react'
 import { useLocation } from 'react-router-dom';
 import image from "../assets/heading.jpg";
 import axios from 'axios';
@@ -19,21 +19,16 @@ const Dashboard = () => {
     const [messages, setmessages] = useState([]);
     const [mgs, setmgs] = useState({ message: "" });
     const [search, setsearch] = useState("");
-    const [onlineUsers, setOnlineUsers] = useState([]); // list of online user ids
+    const [onlineUsers, setOnlineUsers] = useState([]);
 
-    // Track unread counts per user id
     const [unreadCounts, setUnreadCounts] = useState({});
-    // Track the currently open chat partner id
     const currentChatId = useRef(null);
-    // Previous message counts per user for detecting new messages
     const prevMsgCounts = useRef({});
-
-    // Ref for auto-scrolling to latest message
     const messagesEndRef = useRef(null);
 
-    const handle = (e) => setmgs({ ...mgs, [e.target.name]: e.target.value });
-
     const navigate = useNavigate();
+
+    const handle = (e) => setmgs({ ...mgs, [e.target.name]: e.target.value });
 
     const fetchApi = async () => {
         try {
@@ -44,7 +39,6 @@ const Dashboard = () => {
         }
     };
 
-    // Send heartbeat to mark this user as online
     const sendHeartbeat = async () => {
         try {
             await axios.post(`${api_url}/online`, { userId: user_id });
@@ -53,19 +47,19 @@ const Dashboard = () => {
         }
     };
 
-    // Fetch who is currently online
     const fetchOnlineUsers = async () => {
         try {
             const res = await axios.get(`${api_url}/online`);
-            setOnlineUsers(res.data); // array of user ids
+            setOnlineUsers(res.data);
         } catch (err) {
             console.log(err);
         }
     };
 
-    // Mark user offline on tab close / signout
+    // ✅ Fix 1: sendBeacon with correct Content-Type so backend parses body correctly
     const markOffline = () => {
-        navigator.sendBeacon(`${api_url}/offline`, JSON.stringify({ userId: user_id }));
+        const blob = new Blob([JSON.stringify({ userId: user_id })], { type: "application/json" });
+        navigator.sendBeacon(`${api_url}/offline`, blob);
     };
 
     const handleSignout = async () => {
@@ -84,8 +78,8 @@ const Dashboard = () => {
         }
     }, [messages]);
 
-    // Poll ALL conversations in background to detect new incoming messages
-    const pollAllConversations = async (usersList) => {
+    // ✅ Fix 2: wrap in useCallback so the function reference stays stable
+    const pollAllConversations = useCallback(async (usersList) => {
         for (const u of usersList) {
             if (u._id === user_id) continue;
             try {
@@ -93,7 +87,7 @@ const Dashboard = () => {
                 const fetchedMessages = res.data;
                 const newCount = fetchedMessages.filter(m => m.type === "received").length;
 
-                // First time we see this user — just record the baseline, never badge
+                // First time — set baseline, never badge
                 if (!(u._id in prevMsgCounts.current)) {
                     prevMsgCounts.current[u._id] = newCount;
                     continue;
@@ -101,7 +95,6 @@ const Dashboard = () => {
 
                 const prevCount = prevMsgCounts.current[u._id];
 
-                // Only badge if messages actually increased AND this chat isn't open
                 if (newCount > prevCount && currentChatId.current !== u._id) {
                     const diff = newCount - prevCount;
                     setUnreadCounts(prev => ({
@@ -114,18 +107,17 @@ const Dashboard = () => {
                 // Silently ignore
             }
         }
-    };
+    }, [user_id]);
 
     useEffect(() => {
         fetchApi();
-        sendHeartbeat();       // mark online immediately on login
-        fetchOnlineUsers();    // fetch online list immediately
+        sendHeartbeat();
+        fetchOnlineUsers();
 
         const usersInterval = setInterval(() => fetchApi(), 5000);
-        const onlineInterval = setInterval(() => fetchOnlineUsers(), 5000);  // poll online status
-        const heartbeatInterval = setInterval(() => sendHeartbeat(), 30000); // keep-alive every 30s
+        const onlineInterval = setInterval(() => fetchOnlineUsers(), 5000);
+        const heartbeatInterval = setInterval(() => sendHeartbeat(), 30000);
 
-        // Mark offline if user closes/refreshes tab
         window.addEventListener("beforeunload", markOffline);
 
         return () => {
@@ -138,19 +130,18 @@ const Dashboard = () => {
         };
     }, []);
 
-    // Once we have the users list, start background polling for notifications
+    // ✅ Fix 2 continued: useEffect now correctly depends on pollAllConversations
     useEffect(() => {
         if (users.length === 0) return;
         if (window.bgPollInterval) clearInterval(window.bgPollInterval);
         window.bgPollInterval = setInterval(() => pollAllConversations(users), 5000);
         return () => clearInterval(window.bgPollInterval);
-    }, [users]);
+    }, [users, pollAllConversations]);
 
     const handleSpecific = async (user) => {
         setsample(false);
         currentChatId.current = user._id;
 
-        // Clear unread badge for this user
         setUnreadCounts(prev => ({ ...prev, [user._id]: 0 }));
 
         if (window.convoInterval) clearInterval(window.convoInterval);
@@ -249,7 +240,6 @@ const Dashboard = () => {
                             <span className='users'>{res.username}</span>
 
                             {res._id === user_id ? (
-                                // Your own profile — just show "You" indicator, no dot
                                 <><div id="spot"></div><div id="another"></div></>
                             ) : (
                                 <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
@@ -260,9 +250,7 @@ const Dashboard = () => {
                                         borderRadius: "50%",
                                         display: "inline-block",
                                         backgroundColor: isOnline(res._id) ? "#00e676" : "#e53935",
-                                        boxShadow: isOnline(res._id)
-                                            ? "0 0 6px #00e676"
-                                            : "0 0 6px #e53935",
+                                        boxShadow: isOnline(res._id) ? "0 0 6px #00e676" : "0 0 6px #e53935",
                                         flexShrink: 0
                                     }} title={isOnline(res._id) ? "Online" : "Offline"} />
 
@@ -325,7 +313,6 @@ const Dashboard = () => {
                             <div id="each_profile_div">
                                 <FaUser style={{ fontSize: "2vw", color: "white" }} />
                                 <h3 style={{ color: "white" }}>{particular.username}</h3>
-                                {/* Online indicator in chat header */}
                                 {particular._id && (
                                     <span style={{
                                         width: "10px",
