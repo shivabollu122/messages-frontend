@@ -64,9 +64,16 @@ const Dashboard = () => {
                 const res = await axios.get(`${api_url}/conversation/${user_id}/${u._id}`);
                 const fetchedMessages = res.data;
                 const newCount = fetchedMessages.filter(m => m.type === "received").length;
-                const prevCount = prevMsgCounts.current[u._id] || 0;
 
-                // If new received messages arrived and this is NOT the open chat, increment badge
+                // First time we see this user — just record the baseline, never badge
+                if (!(u._id in prevMsgCounts.current)) {
+                    prevMsgCounts.current[u._id] = newCount;
+                    continue;
+                }
+
+                const prevCount = prevMsgCounts.current[u._id];
+
+                // Only badge if messages actually increased AND this chat isn't open
                 if (newCount > prevCount && currentChatId.current !== u._id) {
                     const diff = newCount - prevCount;
                     setUnreadCounts(prev => ({
