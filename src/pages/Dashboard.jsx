@@ -19,6 +19,7 @@ const Dashboard = () => {
     const [messages, setmessages] = useState([]);
     const [mgs, setmgs] = useState({ message: "" });
     const [search, setsearch] = useState("");
+    const [onlineUsers, setOnlineUsers] = useState([]); // list of online user ids
 
     // Track unread counts per user id
     const [unreadCounts, setUnreadCounts] = useState({});
@@ -43,10 +44,37 @@ const Dashboard = () => {
         }
     };
 
-    const handleSignout = () => {
+    // Send heartbeat to mark this user as online
+    const sendHeartbeat = async () => {
+        try {
+            await axios.post(`${api_url}/online`, { userId: user_id });
+        } catch (err) {
+            console.log(err);
+        }
+    };
+
+    // Fetch who is currently online
+    const fetchOnlineUsers = async () => {
+        try {
+            const res = await axios.get(`${api_url}/online`);
+            setOnlineUsers(res.data); // array of user ids
+        } catch (err) {
+            console.log(err);
+        }
+    };
+
+    // Mark user offline on tab close / signout
+    const markOffline = () => {
+        navigator.sendBeacon(`${api_url}/offline`, JSON.stringify({ userId: user_id }));
+    };
+
+    const handleSignout = async () => {
+        try {
+            await axios.post(`${api_url}/offline`, { userId: user_id });
+        } catch (err) {}
         setTimeout(() => {
             navigate("/", { replace: true });
-        }, 500);
+        }, 300);
     };
 
     // Auto-scroll to bottom whenever messages change
@@ -83,19 +111,30 @@ const Dashboard = () => {
                 }
                 prevMsgCounts.current[u._id] = newCount;
             } catch (err) {
-                // Silently ignore errors for background polling
+                // Silently ignore
             }
         }
     };
 
     useEffect(() => {
         fetchApi();
-        const interval = setInterval(() => fetchApi(), 5000);
+        sendHeartbeat();       // mark online immediately on login
+        fetchOnlineUsers();    // fetch online list immediately
+
+        const usersInterval = setInterval(() => fetchApi(), 5000);
+        const onlineInterval = setInterval(() => fetchOnlineUsers(), 5000);  // poll online status
+        const heartbeatInterval = setInterval(() => sendHeartbeat(), 30000); // keep-alive every 30s
+
+        // Mark offline if user closes/refreshes tab
+        window.addEventListener("beforeunload", markOffline);
 
         return () => {
-            clearInterval(interval);
+            clearInterval(usersInterval);
+            clearInterval(onlineInterval);
+            clearInterval(heartbeatInterval);
             if (window.convoInterval) clearInterval(window.convoInterval);
             if (window.bgPollInterval) clearInterval(window.bgPollInterval);
+            window.removeEventListener("beforeunload", markOffline);
         };
     }, []);
 
@@ -124,7 +163,6 @@ const Dashboard = () => {
             setparticular(particularRes.data);
             setmessages(convoRes.data);
 
-            // Sync prevMsgCounts so we don't re-badge messages we already read
             const receivedCount = convoRes.data.filter(m => m.type === "received").length;
             prevMsgCounts.current[user._id] = receivedCount;
 
@@ -134,7 +172,6 @@ const Dashboard = () => {
                 try {
                     const res = await axios.get(`${api_url}/conversation/${user_id}/${otherId}`);
                     setmessages(res.data);
-                    // Keep prevMsgCounts in sync for the open chat (no badge needed)
                     const rc = res.data.filter(m => m.type === "received").length;
                     prevMsgCounts.current[otherId] = rc;
                 } catch (err) {
@@ -183,6 +220,8 @@ const Dashboard = () => {
         u.username.toLowerCase().includes(search.toLowerCase())
     );
 
+    const isOnline = (id) => onlineUsers.includes(id);
+
     return (
         <div id="main_msgs_container">
             <nav id="navbar">
@@ -208,10 +247,26 @@ const Dashboard = () => {
                         <div className="each_div" key={res._id}>
                             <FaUser style={{ color: "white" }} />
                             <span className='users'>{res.username}</span>
-                            {res._id === user_id
-                                ? <><div id="spot"></div><div id="another"></div></>
-                                : (
-                                    // Badge wrapper — position relative so the badge sits on the icon
+
+                            {res._id === user_id ? (
+                                // Your own profile — just show "You" indicator, no dot
+                                <><div id="spot"></div><div id="another"></div></>
+                            ) : (
+                                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                                    {/* Online / Offline dot */}
+                                    <span style={{
+                                        width: "10px",
+                                        height: "10px",
+                                        borderRadius: "50%",
+                                        display: "inline-block",
+                                        backgroundColor: isOnline(res._id) ? "#00e676" : "#e53935",
+                                        boxShadow: isOnline(res._id)
+                                            ? "0 0 6px #00e676"
+                                            : "0 0 6px #e53935",
+                                        flexShrink: 0
+                                    }} title={isOnline(res._id) ? "Online" : "Offline"} />
+
+                                    {/* Message icon with unread badge */}
                                     <div
                                         style={{ position: "relative", display: "inline-flex", cursor: "pointer" }}
                                         onClick={() => handleSpecific(res)}
@@ -240,8 +295,8 @@ const Dashboard = () => {
                                             </span>
                                         )}
                                     </div>
-                                )
-                            }
+                                </div>
+                            )}
                         </div>
                     ))}
                 </div>
@@ -270,6 +325,18 @@ const Dashboard = () => {
                             <div id="each_profile_div">
                                 <FaUser style={{ fontSize: "2vw", color: "white" }} />
                                 <h3 style={{ color: "white" }}>{particular.username}</h3>
+                                {/* Online indicator in chat header */}
+                                {particular._id && (
+                                    <span style={{
+                                        width: "10px",
+                                        height: "10px",
+                                        borderRadius: "50%",
+                                        display: "inline-block",
+                                        backgroundColor: isOnline(particular._id) ? "#00e676" : "#e53935",
+                                        boxShadow: isOnline(particular._id) ? "0 0 6px #00e676" : "0 0 6px #e53935",
+                                        marginLeft: "8px"
+                                    }} />
+                                )}
                             </div>
                             <button id='delete_user' onClick={handledelete}>Delete User</button>
                         </nav>
@@ -283,7 +350,6 @@ const Dashboard = () => {
                                         {m.mgs}
                                     </span>
                                 ))}
-                                {/* Invisible anchor element — scrolled into view on new messages */}
                                 <div ref={messagesEndRef} />
                             </div>
                             <div id="mgs_sender_div">
