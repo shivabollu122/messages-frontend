@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useRef } from 'react'
 import { useLocation } from 'react-router-dom';
 import image from "../assets/heading.jpg";
 import axios from 'axios';
@@ -16,9 +16,19 @@ const Dashboard = () => {
     const [sample, setsample] = useState(true);
     const [users, setusers] = useState([]);
     const [particular, setparticular] = useState({});
-    const [messages, setmessages] = useState([]); // ✅ single array
+    const [messages, setmessages] = useState([]);
     const [mgs, setmgs] = useState({ message: "" });
     const [search, setsearch] = useState("");
+
+    // Track unread counts per user id
+    const [unreadCounts, setUnreadCounts] = useState({});
+    // Track the currently open chat partner id
+    const currentChatId = useRef(null);
+    // Previous message counts per user for detecting new messages
+    const prevMsgCounts = useRef({});
+
+    // Ref for auto-scrolling to latest message
+    const messagesEndRef = useRef(null);
 
     const handle = (e) => setmgs({ ...mgs, [e.target.name]: e.target.value });
 
@@ -39,6 +49,38 @@ const Dashboard = () => {
         }, 500);
     };
 
+    // Auto-scroll to bottom whenever messages change
+    useEffect(() => {
+        if (messagesEndRef.current) {
+            messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+        }
+    }, [messages]);
+
+    // Poll ALL conversations in background to detect new incoming messages
+    const pollAllConversations = async (usersList) => {
+        for (const u of usersList) {
+            if (u._id === user_id) continue;
+            try {
+                const res = await axios.get(`${api_url}/conversation/${user_id}/${u._id}`);
+                const fetchedMessages = res.data;
+                const newCount = fetchedMessages.filter(m => m.type === "received").length;
+                const prevCount = prevMsgCounts.current[u._id] || 0;
+
+                // If new received messages arrived and this is NOT the open chat, increment badge
+                if (newCount > prevCount && currentChatId.current !== u._id) {
+                    const diff = newCount - prevCount;
+                    setUnreadCounts(prev => ({
+                        ...prev,
+                        [u._id]: (prev[u._id] || 0) + diff
+                    }));
+                }
+                prevMsgCounts.current[u._id] = newCount;
+            } catch (err) {
+                // Silently ignore errors for background polling
+            }
+        }
+    };
+
     useEffect(() => {
         fetchApi();
         const interval = setInterval(() => fetchApi(), 5000);
@@ -46,11 +88,24 @@ const Dashboard = () => {
         return () => {
             clearInterval(interval);
             if (window.convoInterval) clearInterval(window.convoInterval);
+            if (window.bgPollInterval) clearInterval(window.bgPollInterval);
         };
     }, []);
 
+    // Once we have the users list, start background polling for notifications
+    useEffect(() => {
+        if (users.length === 0) return;
+        if (window.bgPollInterval) clearInterval(window.bgPollInterval);
+        window.bgPollInterval = setInterval(() => pollAllConversations(users), 5000);
+        return () => clearInterval(window.bgPollInterval);
+    }, [users]);
+
     const handleSpecific = async (user) => {
         setsample(false);
+        currentChatId.current = user._id;
+
+        // Clear unread badge for this user
+        setUnreadCounts(prev => ({ ...prev, [user._id]: 0 }));
 
         if (window.convoInterval) clearInterval(window.convoInterval);
 
@@ -60,7 +115,11 @@ const Dashboard = () => {
                 axios.get(`${api_url}/conversation/${user_id}/${user._id}`)
             ]);
             setparticular(particularRes.data);
-            setmessages(convoRes.data); // ✅ single sorted array
+            setmessages(convoRes.data);
+
+            // Sync prevMsgCounts so we don't re-badge messages we already read
+            const receivedCount = convoRes.data.filter(m => m.type === "received").length;
+            prevMsgCounts.current[user._id] = receivedCount;
 
             const otherId = user._id;
 
@@ -68,6 +127,9 @@ const Dashboard = () => {
                 try {
                     const res = await axios.get(`${api_url}/conversation/${user_id}/${otherId}`);
                     setmessages(res.data);
+                    // Keep prevMsgCounts in sync for the open chat (no badge needed)
+                    const rc = res.data.filter(m => m.type === "received").length;
+                    prevMsgCounts.current[otherId] = rc;
                 } catch (err) {
                     console.log(err);
                 }
@@ -95,7 +157,6 @@ const Dashboard = () => {
             const res = await axios.put(api_url, obj);
 
             if (res.data.success) {
-                // ✅ optimistically add to single array
                 setmessages(prev => [
                     ...prev,
                     { type: "sent", mgs: mgs.message, time: new Date() }
@@ -142,10 +203,37 @@ const Dashboard = () => {
                             <span className='users'>{res.username}</span>
                             {res._id === user_id
                                 ? <><div id="spot"></div><div id="another"></div></>
-                                : <FaMessage
-                                    style={{ color: "white", cursor: "pointer" }}
-                                    onClick={() => handleSpecific(res)}
-                                  />
+                                : (
+                                    // Badge wrapper — position relative so the badge sits on the icon
+                                    <div
+                                        style={{ position: "relative", display: "inline-flex", cursor: "pointer" }}
+                                        onClick={() => handleSpecific(res)}
+                                    >
+                                        <FaMessage style={{ color: "white" }} />
+                                        {unreadCounts[res._id] > 0 && (
+                                            <span style={{
+                                                position: "absolute",
+                                                top: "-8px",
+                                                right: "-8px",
+                                                background: "#e53935",
+                                                color: "white",
+                                                borderRadius: "50%",
+                                                fontSize: "10px",
+                                                fontWeight: "bold",
+                                                minWidth: "16px",
+                                                height: "16px",
+                                                display: "flex",
+                                                alignItems: "center",
+                                                justifyContent: "center",
+                                                padding: "0 3px",
+                                                lineHeight: 1,
+                                                boxShadow: "0 0 4px rgba(0,0,0,0.4)"
+                                            }}>
+                                                {unreadCounts[res._id] > 99 ? "99+" : unreadCounts[res._id]}
+                                            </span>
+                                        )}
+                                    </div>
+                                )
                             }
                         </div>
                     ))}
@@ -179,7 +267,6 @@ const Dashboard = () => {
                             <button id='delete_user' onClick={handledelete}>Delete User</button>
                         </nav>
                         <div id="entire_msgs_div_each">
-                            {/* ✅ single chat thread like whatsapp */}
                             <div id="mgs_visible_div">
                                 {messages.map((m, i) => (
                                     <span
@@ -189,6 +276,8 @@ const Dashboard = () => {
                                         {m.mgs}
                                     </span>
                                 ))}
+                                {/* Invisible anchor element — scrolled into view on new messages */}
+                                <div ref={messagesEndRef} />
                             </div>
                             <div id="mgs_sender_div">
                                 <input
@@ -198,6 +287,7 @@ const Dashboard = () => {
                                     id='mgs_input'
                                     onChange={handle}
                                     value={mgs.message}
+                                    onKeyDown={(e) => e.key === "Enter" && handlebutton()}
                                 />
                                 <button id='send_btn' onClick={handlebutton}>
                                     <MdSend style={{ fontSize: "2vw", color: "white" }} />
