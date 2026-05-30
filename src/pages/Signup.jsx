@@ -16,18 +16,15 @@ const Signup = () => {
   let handlesubmit = async (e) => {
     e.preventDefault();
     try {
-      // ✅ Only check if email exists — does NOT fetch all profiles
       const checkRes = await axios.post(`${api_url}/check-email`, { email: sign.email });
-
       if (checkRes.data.exists) {
         alert("User already existed");
         setsign({ username: "", email: "", password: "" });
       } else {
         await axios.post(api_url, sign);
+        // ✅ Navigate first, alert second — feels instant after clicking OK
+        nav("/login");
         alert("SignUp Successful");
-        setTimeout(() => {
-          nav("/login");
-        }, 2000);
       }
     } catch (err) {
       console.log(err);
