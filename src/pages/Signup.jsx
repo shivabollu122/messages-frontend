@@ -22,7 +22,6 @@ const Signup = () => {
         setsign({ username: "", email: "", password: "" });
       } else {
         await axios.post(api_url, sign);
-        // ✅ Navigate first, alert second — feels instant after clicking OK
         nav("/login");
         alert("SignUp Successful");
       }
