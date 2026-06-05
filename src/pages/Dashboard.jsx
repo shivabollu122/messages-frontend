@@ -56,7 +56,6 @@ const Dashboard = () => {
         }
     };
 
-    // ✅ Fix 1: sendBeacon with correct Content-Type so backend parses body correctly
     const markOffline = () => {
         const blob = new Blob([JSON.stringify({ userId: user_id })], { type: "application/json" });
         navigator.sendBeacon(`${api_url}/offline`, blob);
@@ -71,14 +70,12 @@ const Dashboard = () => {
         }, 300);
     };
 
-    // Auto-scroll to bottom whenever messages change
     useEffect(() => {
         if (messagesEndRef.current) {
             messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
         }
     }, [messages]);
 
-    // ✅ Fix 2: wrap in useCallback so the function reference stays stable
     const pollAllConversations = useCallback(async (usersList) => {
         for (const u of usersList) {
             if (u._id === user_id) continue;
@@ -87,7 +84,6 @@ const Dashboard = () => {
                 const fetchedMessages = res.data;
                 const newCount = fetchedMessages.filter(m => m.type === "received").length;
 
-                // First time — set baseline, never badge
                 if (!(u._id in prevMsgCounts.current)) {
                     prevMsgCounts.current[u._id] = newCount;
                     continue;
@@ -104,7 +100,6 @@ const Dashboard = () => {
                 }
                 prevMsgCounts.current[u._id] = newCount;
             } catch (err) {
-                // Silently ignore
             }
         }
     }, [user_id]);
@@ -130,7 +125,6 @@ const Dashboard = () => {
         };
     }, []);
 
-    // ✅ Fix 2 continued: useEffect now correctly depends on pollAllConversations
     useEffect(() => {
         if (users.length === 0) return;
         if (window.bgPollInterval) clearInterval(window.bgPollInterval);
